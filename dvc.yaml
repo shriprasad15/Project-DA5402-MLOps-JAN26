@@ -1,0 +1,58 @@
+stages:
+  ingest:
+    cmd: python -m src.data.ingest
+    outs:
+      - data/raw
+  synth_pa:
+    cmd: python -m src.data.synthesize --out data/raw/synthetic_v1
+    deps:
+      - src/data/synthesize.py
+      - prompts/synthesize
+    outs:
+      - data/raw/synthetic_v1
+  clean:
+    cmd: python -m src.data.clean
+    deps:
+      - data/raw
+      - src/data/clean.py
+    outs:
+      - data/interim
+  label_map:
+    cmd: python -m src.data.label_map
+    deps:
+      - data/interim
+      - src/data/label_map.py
+    outs:
+      - data/processed
+  drift_baseline:
+    cmd: python -m src.data.drift_baseline
+    deps:
+      - data/processed
+      - src/data/drift_baseline.py
+    outs:
+      - data/reference
+  train:
+    cmd: mlflow run . -e train -P data_hash=${dvc.hash}
+    deps:
+      - data/processed
+      - src/train.py
+      - src/models
+    outs:
+      - models/
+    metrics:
+      - metrics.json:
+          cache: false
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+      - models/
+      - data/processed
+    metrics:
+      - eval.json:
+          cache: false
+  quantize:
+    cmd: python -m src.quantize --mode dynamic_int8
+    deps:
+      - models/
+    outs:
+      - models/quantized

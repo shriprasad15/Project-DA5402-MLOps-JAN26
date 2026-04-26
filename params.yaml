@@ -1,0 +1,30 @@
+train:
+  model_name: distilbert-base-uncased
+  batch_size: 64
+  epochs: 5
+  lr: 2.0e-5
+  warmup_ratio: 0.1
+  max_length: 256
+  seed: 42
+  device: cuda
+  bf16: true
+  loss_weights:
+    pa: 1.0
+    sarcasm: 1.0
+    tone: 1.0
+tune:
+  enabled: false
+  num_samples: 16
+  scheduler: asha
+synthesize:
+  generator_model: gemma3:4b
+  fallback_model: llama3:8b
+  batch_size: 250
+  few_shot_count: 20
+  temperature: 0.9
+  target_count: 10000
+drift:
+  window_seconds: 60
+  ks_pvalue_alert: 0.01
+  disagreement_alert: 0.30
+  mmd_alert: 0.15

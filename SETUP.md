@@ -16,7 +16,7 @@
 
 ```bash
 git clone <repo>
-cd passive-aggressive-email-detector
+cd Project-DA5402-MLOps-JAN26
 cp .env.example .env
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt

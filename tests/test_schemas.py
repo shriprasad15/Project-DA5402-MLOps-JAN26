@@ -1,10 +1,15 @@
 import pytest
-from backend.app.schemas import Tone, PredictRequest, PredictResponse, FeedbackRequest
+
+from backend.app.schemas import FeedbackRequest, PredictRequest, PredictResponse, Tone
 
 
 def test_tone_enum_has_expected_values():
     assert {t.value for t in Tone} == {
-        "neutral", "friendly", "assertive", "aggressive", "passive_aggressive"
+        "neutral",
+        "friendly",
+        "assertive",
+        "aggressive",
+        "passive_aggressive",
     }
 
 

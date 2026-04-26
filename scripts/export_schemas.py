@@ -1,4 +1,5 @@
 """Dump Pydantic schemas to contracts/schemas.json for non-Python consumers."""
+
 import json
 from pathlib import Path
 

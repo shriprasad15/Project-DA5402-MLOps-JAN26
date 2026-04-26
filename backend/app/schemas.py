@@ -1,4 +1,5 @@
 """API request/response schemas — the contract between frontend and backend."""
+
 from __future__ import annotations
 
 from typing import Literal

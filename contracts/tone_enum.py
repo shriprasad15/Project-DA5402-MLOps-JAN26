@@ -1,4 +1,5 @@
 """Canonical tone enum — imported by backend schemas and training code."""
+
 from enum import Enum
 
 

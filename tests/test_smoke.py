@@ -1,4 +1,5 @@
 """One smoke test so CI has something real to run from day one."""
+
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

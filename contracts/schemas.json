@@ -1,0 +1,154 @@
+{
+  "PredictRequest": {
+    "properties": {
+      "text": {
+        "maxLength": 5000,
+        "minLength": 1,
+        "title": "Text",
+        "type": "string"
+      },
+      "subject": {
+        "anyOf": [
+          {
+            "maxLength": 500,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Subject"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "PredictRequest",
+    "type": "object"
+  },
+  "PredictResponse": {
+    "$defs": {
+      "HighlightedPhrase": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "start": {
+            "minimum": 0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "end": {
+            "minimum": 0,
+            "title": "End",
+            "type": "integer"
+          },
+          "severity": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Severity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "text",
+          "start",
+          "end",
+          "severity"
+        ],
+        "title": "HighlightedPhrase",
+        "type": "object"
+      },
+      "Tone": {
+        "enum": [
+          "neutral",
+          "friendly",
+          "assertive",
+          "aggressive",
+          "passive_aggressive"
+        ],
+        "title": "Tone",
+        "type": "string"
+      }
+    },
+    "properties": {
+      "prediction_id": {
+        "title": "Prediction Id",
+        "type": "string"
+      },
+      "scores": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "title": "Scores",
+        "type": "object"
+      },
+      "tone": {
+        "$ref": "#/$defs/Tone"
+      },
+      "tone_confidence": {
+        "maximum": 1.0,
+        "minimum": 0.0,
+        "title": "Tone Confidence",
+        "type": "number"
+      },
+      "highlighted_phrases": {
+        "items": {
+          "$ref": "#/$defs/HighlightedPhrase"
+        },
+        "title": "Highlighted Phrases",
+        "type": "array"
+      },
+      "translation": {
+        "title": "Translation",
+        "type": "string"
+      },
+      "model_version": {
+        "title": "Model Version",
+        "type": "string"
+      },
+      "latency_ms": {
+        "minimum": 0,
+        "title": "Latency Ms",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prediction_id",
+      "scores",
+      "tone",
+      "tone_confidence",
+      "highlighted_phrases",
+      "translation",
+      "model_version",
+      "latency_ms"
+    ],
+    "title": "PredictResponse",
+    "type": "object"
+  },
+  "FeedbackRequest": {
+    "properties": {
+      "prediction_id": {
+        "minLength": 1,
+        "title": "Prediction Id",
+        "type": "string"
+      },
+      "vote": {
+        "enum": [
+          "up",
+          "down"
+        ],
+        "title": "Vote",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prediction_id",
+      "vote"
+    ],
+    "title": "FeedbackRequest",
+    "type": "object"
+  }
+}

@@ -1,0 +1,86 @@
+openapi: 3.1.0
+info:
+  title: Passive-Aggressive Email Detector API
+  version: 0.1.0
+  description: REST contract between the frontend and the backend.
+servers:
+  - url: http://localhost:8000
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      responses:
+        "200": { description: OK }
+  /ready:
+    get:
+      summary: Readiness probe
+      responses:
+        "200": { description: Ready }
+        "503": { description: Not ready }
+  /predict:
+    post:
+      summary: Score an email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PredictRequest" }
+      responses:
+        "200":
+          description: Scored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PredictResponse" }
+  /feedback:
+    post:
+      summary: Record a user 👍/👎 vote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedbackRequest" }
+      responses:
+        "204": { description: Recorded }
+components:
+  schemas:
+    PredictRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 5000 }
+        subject: { type: string, maxLength: 500 }
+    PredictResponse:
+      type: object
+      required: [prediction_id, scores, tone, tone_confidence, highlighted_phrases, translation, model_version, latency_ms]
+      properties:
+        prediction_id: { type: string }
+        scores:
+          type: object
+          properties:
+            passive_aggression: { type: number, minimum: 0, maximum: 1 }
+            sarcasm: { type: number, minimum: 0, maximum: 1 }
+        tone:
+          type: string
+          enum: [neutral, friendly, assertive, aggressive, passive_aggressive]
+        tone_confidence: { type: number, minimum: 0, maximum: 1 }
+        highlighted_phrases:
+          type: array
+          items:
+            type: object
+            required: [text, start, end, severity]
+            properties:
+              text: { type: string }
+              start: { type: integer, minimum: 0 }
+              end: { type: integer, minimum: 0 }
+              severity: { type: number, minimum: 0, maximum: 1 }
+        translation: { type: string }
+        model_version: { type: string }
+        latency_ms: { type: integer, minimum: 0 }
+    FeedbackRequest:
+      type: object
+      required: [prediction_id, vote]
+      properties:
+        prediction_id: { type: string }
+        vote:
+          type: string
+          enum: [up, down]

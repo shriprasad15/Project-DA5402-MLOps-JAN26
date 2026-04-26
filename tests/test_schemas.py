@@ -2,6 +2,8 @@ import pytest
 
 from backend.app.schemas import FeedbackRequest, PredictRequest, PredictResponse, Tone
 
+pytestmark = pytest.mark.unit
+
 
 def test_tone_enum_has_expected_values():
     assert {t.value for t in Tone} == {

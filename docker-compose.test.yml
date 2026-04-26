@@ -1,0 +1,9 @@
+# Integration test overlay — strips volumes, uses ephemeral DBs, exposes more ports.
+services:
+  postgres:
+    tmpfs: ["/var/lib/postgresql/data"]
+  backend:
+    environment:
+      ENV: test
+  mlflow-server:
+    tmpfs: ["/artifacts"]

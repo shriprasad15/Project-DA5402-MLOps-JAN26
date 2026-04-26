@@ -1,0 +1,115 @@
+# 17-service stub — every service boots a hello-world container in Wave 0
+# and gets replaced with a real image in Wave 1+.
+services:
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports: ["80:80", "443:443"]
+    depends_on: [frontend, backend]
+    healthcheck: { test: ["CMD", "nginx", "-t"], interval: 10s }
+
+  frontend:
+    image: nginxinc/nginx-unprivileged:1.27-alpine
+    healthcheck: { test: ["CMD", "true"], interval: 10s }
+
+  backend:
+    image: python:3.11-slim
+    command: ["python", "-c", "import http.server,socketserver; socketserver.TCPServer(('',8000), http.server.BaseHTTPRequestHandler).serve_forever()"]
+    ports: ["8000:8000"]
+    env_file: [.env]
+    depends_on: [postgres, redis, model-server]
+    healthcheck: { test: ["CMD", "true"], interval: 10s }
+
+  model-server:
+    image: python:3.11-slim
+    command: ["python", "-c", "import http.server,socketserver; socketserver.TCPServer(('',8080), http.server.BaseHTTPRequestHandler).serve_forever()"]
+    healthcheck: { test: ["CMD", "true"], interval: 10s }
+
+  redis:
+    image: redis:7.4-alpine
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s }
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes: ["pg_data:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"], interval: 10s }
+
+  mlflow-server:
+    image: ghcr.io/mlflow/mlflow:v2.17.0
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/mlflow
+      --default-artifact-root /artifacts
+    volumes: ["mlflow_artifacts:/artifacts"]
+    depends_on: [postgres]
+    healthcheck: { test: ["CMD", "curl", "-f", "http://localhost:5000"], interval: 15s }
+
+  airflow-webserver:
+    image: apache/airflow:2.9.3-python3.11
+    command: webserver
+    env_file: [.env]
+    depends_on: [postgres]
+    healthcheck: { test: ["CMD", "true"], interval: 30s }
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.3-python3.11
+    command: scheduler
+    env_file: [.env]
+    depends_on: [postgres]
+    healthcheck: { test: ["CMD", "true"], interval: 30s }
+
+  airflow-worker:
+    image: apache/airflow:2.9.3-python3.11
+    command: celery worker
+    env_file: [.env]
+    depends_on: [postgres]
+    healthcheck: { test: ["CMD", "true"], interval: 30s }
+
+  spark-master:
+    image: bitnami/spark:3.5.3
+    environment: { SPARK_MODE: master }
+    ports: ["7077:7077", "8081:8080"]
+    healthcheck: { test: ["CMD", "true"], interval: 15s }
+
+  spark-worker:
+    image: bitnami/spark:3.5.3
+    environment: { SPARK_MODE: worker, SPARK_MASTER_URL: "spark://spark-master:7077" }
+    depends_on: [spark-master]
+    healthcheck: { test: ["CMD", "true"], interval: 15s }
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"], interval: 15s }
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"], interval: 15s }
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+    volumes: ["grafana_data:/var/lib/grafana"]
+    healthcheck: { test: ["CMD-SHELL", "curl -fs http://localhost:3000/api/health"], interval: 15s }
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    healthcheck: { test: ["CMD", "true"], interval: 30s }
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:ro"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+    healthcheck: { test: ["CMD", "true"], interval: 30s }
+
+volumes:
+  pg_data:
+  mlflow_artifacts:
+  grafana_data:

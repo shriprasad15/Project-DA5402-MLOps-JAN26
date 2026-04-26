@@ -1,0 +1,15 @@
+name: pa-detector
+conda_env: conda.yaml
+entry_points:
+  train:
+    parameters:
+      data_hash: { type: str, default: "latest" }
+      epochs:    { type: int, default: 5 }
+      lr:        { type: float, default: 2.0e-5 }
+      batch_size:{ type: int, default: 64 }
+      tune:      { type: bool, default: false }
+    command: "python -m src.train --data-hash {data_hash} --epochs {epochs} --lr {lr} --batch-size {batch_size} --tune {tune}"
+  evaluate:
+    command: "python -m src.evaluate"
+  quantize:
+    command: "python -m src.quantize --mode dynamic_int8"

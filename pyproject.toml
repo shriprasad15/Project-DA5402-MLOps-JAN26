@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pa-detector"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+description = "Passive-aggressive email detector — MLOps project"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "RUF"]
+ignore = ["E501"]  # black owns line length
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+exclude = ["backend/tests", "tests", "frontend"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests", "backend/tests", "src"]
+markers = [
+    "unit: fast isolated tests",
+    "integration: requires docker services",
+    "e2e: full browser flow",
+    "slow: > 5s",
+]

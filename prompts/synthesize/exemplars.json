@@ -1,0 +1,122 @@
+[
+  {
+    "text": "As we discussed in our last meeting, the deadline has not changed. Please plan accordingly.",
+    "passive_aggression": 0.85,
+    "sarcasm": 0.1,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "Per my last email, the report was due Friday. Let me know if you need me to resend it for a third time.",
+    "passive_aggression": 0.9,
+    "sarcasm": 0.3,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "Friendly reminder that the timesheet submission window closed two days ago.",
+    "passive_aggression": 0.7,
+    "sarcasm": 0.2,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "Oh wonderful, another surprise meeting on the calendar. Really helps with planning my week.",
+    "passive_aggression": 0.75,
+    "sarcasm": 0.9,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "Great job breaking the build again. Truly inspiring stuff from the senior engineer role.",
+    "passive_aggression": 0.6,
+    "sarcasm": 0.95,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "The Q3 numbers are attached. Let me know if you have any questions.",
+    "passive_aggression": 0.05,
+    "sarcasm": 0.0,
+    "tone": "neutral"
+  },
+  {
+    "text": "Hey team! Just wanted to say thanks for crushing it on the launch this week. Coffee is on me Friday!",
+    "passive_aggression": 0.0,
+    "sarcasm": 0.0,
+    "tone": "friendly"
+  },
+  {
+    "text": "This is unacceptable. The client is furious and I need answers from your team by end of day.",
+    "passive_aggression": 0.1,
+    "sarcasm": 0.0,
+    "tone": "aggressive"
+  },
+  {
+    "text": "I need the revised deck on my desk by 3pm. No more extensions.",
+    "passive_aggression": 0.1,
+    "sarcasm": 0.0,
+    "tone": "assertive"
+  },
+  {
+    "text": "Happy Monday everyone! Hope you all had a restful weekend. Standup at 9:30 as usual.",
+    "passive_aggression": 0.0,
+    "sarcasm": 0.0,
+    "tone": "friendly"
+  },
+  {
+    "text": "Just circling back on this since I haven't heard anything since last Tuesday. Any updates?",
+    "passive_aggression": 0.65,
+    "sarcasm": 0.15,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "Per our policy (which I assume you've read), PTO requests require two weeks' notice.",
+    "passive_aggression": 0.7,
+    "sarcasm": 0.4,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "Please find the onboarding checklist attached. Reach out if anything is unclear.",
+    "passive_aggression": 0.0,
+    "sarcasm": 0.0,
+    "tone": "neutral"
+  },
+  {
+    "text": "I've told you three times now: stop pushing directly to main. Do it again and we're having a conversation with your manager.",
+    "passive_aggression": 0.25,
+    "sarcasm": 0.0,
+    "tone": "aggressive"
+  },
+  {
+    "text": "We are going to hit this deadline. I need everyone focused, blockers surfaced by EOD, and statuses updated daily.",
+    "passive_aggression": 0.05,
+    "sarcasm": 0.0,
+    "tone": "assertive"
+  },
+  {
+    "text": "Thanks so much for jumping on that bug fix over the weekend, really appreciate you going above and beyond.",
+    "passive_aggression": 0.0,
+    "sarcasm": 0.0,
+    "tone": "friendly"
+  },
+  {
+    "text": "Not sure if my previous message made it through, but the review is still blocked on your approval.",
+    "passive_aggression": 0.8,
+    "sarcasm": 0.2,
+    "tone": "passive_aggressive"
+  },
+  {
+    "text": "The deployment will occur at 02:00 UTC on Saturday. Expected downtime is under five minutes.",
+    "passive_aggression": 0.0,
+    "sarcasm": 0.0,
+    "tone": "neutral"
+  },
+  {
+    "text": "Stop CC-ing my manager on every little thing. If you have an issue with my work, come to me directly.",
+    "passive_aggression": 0.2,
+    "sarcasm": 0.0,
+    "tone": "aggressive"
+  },
+  {
+    "text": "Going forward, all design reviews must be scheduled through the shared calendar. No exceptions.",
+    "passive_aggression": 0.1,
+    "sarcasm": 0.0,
+    "tone": "assertive"
+  }
+]

@@ -25,15 +25,15 @@ docker-compose.override.yml
 Thumbs.db
 
 # MLOps artifacts — tracked by DVC, not git
-data/raw/
-data/interim/
-data/processed/
-data/reference/
-data/feedback_exports/
-models/
-mlflow-artifacts/
-!data/.gitkeep
-!models/.gitkeep
+/data/raw/
+/data/interim/
+/data/processed/
+/data/reference/
+/data/feedback_exports/
+/models/
+/mlflow-artifacts/
+!/data/.gitkeep
+!/models/.gitkeep
 
 # Logs
 *.log

@@ -1,0 +1,38 @@
+# ============================================================
+# PA Detector — Centralised Monitoring Configuration
+# All thresholds, SMTP, and routing settings live here.
+# alertmanager/config.yml and prometheus/alert_rules.yml
+# import values via environment-variable substitution or
+# reference this file's intent (see comments).
+# ============================================================
+
+alertmanager:
+  smtp_smarthost: "sandbox.smtp.mailtrap.io:587"
+  smtp_from: "pa-detector-alerts@monitoring.local"
+  # Credentials loaded from .env:
+  #   MAILTRAP_USER   → smtp_auth_username
+  #   MAILTRAP_PASS   → smtp_auth_password
+  smtp_require_tls: true
+  resolve_timeout: 5m
+
+  routing:
+    group_by: ["alertname", "severity", "category"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 1h
+    critical_repeat_interval: 15m
+    info_repeat_interval: 4h
+
+thresholds:
+  error_rate_warning: 0.05        # 5% HTTP 5xx rate
+  error_rate_critical: 0.15       # 15% HTTP 5xx rate
+  latency_p95_warning: 1.0        # seconds
+  latency_p95_critical: 3.0       # seconds
+  drift_ks_pvalue: 0.01           # KS test p-value below this = drift
+  oov_rate_warning: 0.20          # 20% out-of-vocab tokens
+  inference_latency_critical: 2.0 # seconds — model server slow
+  feedback_down_ratio: 0.70       # >70% thumbs-down = model quality issue
+
+grafana:
+  dashboard_uid: "pa-detector-unified"
+  refresh_interval: "10s"

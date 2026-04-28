@@ -1,0 +1,111 @@
+# ============================================================
+# Prometheus Alert Rules — PA Detector
+# Thresholds are documented in monitoring/config.yaml
+# ============================================================
+
+groups:
+  - name: pa_detector_api
+    rules:
+
+      # --- High error rate (warning: >5% for 2m) ---
+      - alert: HighErrorRate
+        expr: >
+          sum(rate(http_requests_total{status=~"5.."}[5m])) /
+          sum(rate(http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          category: api
+        annotations:
+          summary: "High backend error rate"
+          description: "HTTP 5xx error rate exceeded 5% for 2 minutes. Current value: {{ $value | humanizePercentage }}."
+
+      # --- Critical error rate (>15% for 1m) ---
+      - alert: CriticalErrorRate
+        expr: >
+          sum(rate(http_requests_total{status=~"5.."}[5m])) /
+          sum(rate(http_requests_total[5m])) > 0.15
+        for: 1m
+        labels:
+          severity: critical
+          category: api
+        annotations:
+          summary: "CRITICAL — backend error rate above 15%"
+          description: "HTTP 5xx error rate exceeded 15% for 1 minute. Service may be degraded. Current: {{ $value | humanizePercentage }}."
+
+      # --- High API latency (p95 > 1s for 3m) ---
+      - alert: HighAPILatency
+        expr: >
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+          category: api
+        annotations:
+          summary: "High API response latency (p95 > 1s)"
+          description: "95th-percentile API latency exceeded 1 second for 3 minutes. Current p95: {{ $value | humanizeDuration }}."
+
+      # --- Backend down (no requests scraped for 1m) ---
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: api
+        annotations:
+          summary: "Backend service is down"
+          description: "Prometheus cannot reach the backend /metrics endpoint. The service may have crashed."
+
+  - name: pa_detector_ml
+    rules:
+
+      # --- Input distribution drift ---
+      - alert: DriftDetected
+        expr: drift_input_length_ks_pvalue < 0.01
+        for: 5m
+        labels:
+          severity: warning
+          category: ml
+        annotations:
+          summary: "Input distribution drift detected"
+          description: "KS p-value for input text length dropped below 0.01 for 5 minutes (current: {{ $value | humanize }}). Consider retraining."
+
+      # --- High OOV rate ---
+      - alert: HighOOVRate
+        expr: drift_oov_rate > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          category: ml
+        annotations:
+          summary: "High out-of-vocabulary token rate"
+          description: "More than 20% of tokens are OOV for 5 minutes (current: {{ $value | humanizePercentage }}). Input may be shifting outside training distribution."
+
+      # --- Slow model inference (p95 > 2s) ---
+      - alert: SlowModelInference
+        expr: >
+          histogram_quantile(0.95,
+            rate(model_inference_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+          category: ml
+        annotations:
+          summary: "Model inference latency too high (p95 > 2s)"
+          description: "Model server p95 inference time exceeded 2 seconds for 3 minutes. Current: {{ $value | humanizeDuration }}."
+
+      # --- Low user feedback quality signal ---
+      - alert: NegativeFeedbackSpike
+        expr: >
+          increase(feedback_votes_total{vote="down"}[10m]) /
+          (increase(feedback_votes_total[10m]) + 1) > 0.70
+        for: 5m
+        labels:
+          severity: warning
+          category: ml
+        annotations:
+          summary: "High negative feedback ratio"
+          description: "More than 70% of feedback votes in the last 10 minutes are thumbs-down. Model predictions may be degrading."

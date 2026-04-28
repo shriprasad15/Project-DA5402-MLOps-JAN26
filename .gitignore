@@ -35,6 +35,11 @@ Thumbs.db
 !/data/.gitkeep
 !/models/.gitkeep
 
+# Runtime artifacts
+pa_detector.db
+*.db
+docs.zip
+
 # Logs
 *.log
 logs/

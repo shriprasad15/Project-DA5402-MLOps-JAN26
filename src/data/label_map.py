@@ -27,7 +27,7 @@ GOEMOTIONS_NEUTRAL = {27}
 
 def _goemotions_tone(labels: list[int]) -> str:
     if any(lbl in GOEMOTIONS_ANGER for lbl in labels):
-        return Tone.AGGRESSIVE.value
+        return Tone.AGGRESSIVE.value if 2 in labels else Tone.ASSERTIVE.value
     if any(lbl in GOEMOTIONS_JOY for lbl in labels):
         return Tone.FRIENDLY.value
     return Tone.NEUTRAL.value
@@ -45,6 +45,8 @@ def to_unified(df: pd.DataFrame, source: str) -> pd.DataFrame:
     if source in {"sarcasm_headlines", "isarcasm"}:
         out["sarcasm"] = df["sarcasm"].astype(float)
         out.loc[out["sarcasm"] > 0.5, "tone"] = Tone.PASSIVE_AGGRESSIVE.value
+        out.loc[out["sarcasm"] > 0.5, "passive_aggression"] = 0.75
+        out.loc[(out["sarcasm"] >= 0.3) & (out["sarcasm"] <= 0.5), "passive_aggression"] = 0.3
     elif source == "goemotions":
         out["tone"] = df["labels"].map(_goemotions_tone)
     elif source == "enron_subset":

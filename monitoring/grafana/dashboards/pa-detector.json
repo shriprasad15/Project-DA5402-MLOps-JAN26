@@ -1,0 +1,131 @@
+{
+  "title": "PA Detector — Unified Monitoring",
+  "uid": "pa-detector-unified",
+  "schemaVersion": 36,
+  "version": 2,
+  "refresh": "10s",
+  "time": {"from": "now-1h", "to": "now"},
+  "tags": ["pa-detector", "mlops"],
+  "panels": [
+
+    {"id": 1, "title": "── API HEALTH ──", "type": "text", "gridPos": {"h": 2, "w": 24, "x": 0, "y": 0},
+     "options": {"content": "## API Health", "mode": "markdown"}},
+
+    {"id": 2, "title": "Request Rate (req/s)",
+     "type": "timeseries",
+     "gridPos": {"h": 8, "w": 8, "x": 0, "y": 2},
+     "fieldConfig": {"defaults": {"unit": "reqps", "color": {"mode": "palette-classic"}}},
+     "targets": [
+       {"expr": "rate(http_requests_total[1m])", "legendFormat": "{{endpoint}} {{status}}", "refId": "A"}
+     ]},
+
+    {"id": 3, "title": "API Latency — p50 / p95 / p99",
+     "type": "timeseries",
+     "gridPos": {"h": 8, "w": 8, "x": 8, "y": 2},
+     "fieldConfig": {"defaults": {"unit": "s", "color": {"mode": "palette-classic"}}},
+     "targets": [
+       {"expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m])) or vector(0)", "legendFormat": "p50", "refId": "A"},
+       {"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) or vector(0)", "legendFormat": "p95", "refId": "B"},
+       {"expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) or vector(0)", "legendFormat": "p99", "refId": "C"}
+     ]},
+
+    {"id": 4, "title": "HTTP Error Rate (5xx %)",
+     "type": "timeseries",
+     "gridPos": {"h": 8, "w": 8, "x": 16, "y": 2},
+     "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.05}, {"color": "red", "value": 0.15}]}}},
+     "targets": [
+       {"expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) or vector(0)", "legendFormat": "5xx rate", "refId": "A"}
+     ]},
+
+    {"id": 5, "title": "Total Requests (last 1h)",
+     "type": "stat",
+     "gridPos": {"h": 4, "w": 6, "x": 0, "y": 10},
+     "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}}},
+     "targets": [
+       {"expr": "increase(http_requests_total[1h]) or vector(0)", "legendFormat": "requests", "refId": "A"}
+     ]},
+
+    {"id": 6, "title": "Active Predictions (last 5m)",
+     "type": "stat",
+     "gridPos": {"h": 4, "w": 6, "x": 6, "y": 10},
+     "fieldConfig": {"defaults": {"unit": "short"}},
+     "targets": [
+       {"expr": "increase(http_requests_total{endpoint=\"/predict\"}[5m]) or vector(0)", "legendFormat": "predictions", "refId": "A"}
+     ]},
+
+    {"id": 7, "title": "Feedback 👍 Votes",
+     "type": "stat",
+     "gridPos": {"h": 4, "w": 6, "x": 12, "y": 10},
+     "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "green", "mode": "fixed"}}},
+     "targets": [
+       {"expr": "feedback_votes_total{vote=\"up\"} or vector(0)", "legendFormat": "thumbs up", "refId": "A"}
+     ]},
+
+    {"id": 8, "title": "Feedback 👎 Votes",
+     "type": "stat",
+     "gridPos": {"h": 4, "w": 6, "x": 18, "y": 10},
+     "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "red", "mode": "fixed"}}},
+     "targets": [
+       {"expr": "feedback_votes_total{vote=\"down\"} or vector(0)", "legendFormat": "thumbs down", "refId": "A"}
+     ]},
+
+    {"id": 9, "title": "── ML HEALTH ──", "type": "text", "gridPos": {"h": 2, "w": 24, "x": 0, "y": 14},
+     "options": {"content": "## ML Health", "mode": "markdown"}},
+
+    {"id": 10, "title": "Model Inference Latency — p50 / p95",
+     "type": "timeseries",
+     "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+     "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1.0}, {"color": "red", "value": 2.0}]}}},
+     "targets": [
+       {"expr": "histogram_quantile(0.50, rate(model_inference_duration_seconds_bucket[5m])) or vector(0)", "legendFormat": "p50 inference", "refId": "A"},
+       {"expr": "histogram_quantile(0.95, rate(model_inference_duration_seconds_bucket[5m])) or vector(0)", "legendFormat": "p95 inference", "refId": "B"}
+     ]},
+
+    {"id": 11, "title": "Drift KS p-value (Input Length)",
+     "type": "timeseries",
+     "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+     "fieldConfig": {"defaults": {"unit": "short", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 0.01}, {"color": "green", "value": 0.05}]}}},
+     "targets": [
+       {"expr": "drift_input_length_ks_pvalue or vector(1)", "legendFormat": "KS p-value", "refId": "A"}
+     ]},
+
+    {"id": 12, "title": "OOV Token Rate",
+     "type": "timeseries",
+     "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+     "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.1}, {"color": "red", "value": 0.2}]}}},
+     "targets": [
+       {"expr": "drift_oov_rate or vector(0)", "legendFormat": "OOV rate", "refId": "A"}
+     ]},
+
+    {"id": 13, "title": "Prediction Confidence (mean)",
+     "type": "gauge",
+     "gridPos": {"h": 8, "w": 6, "x": 0, "y": 24},
+     "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "green", "value": 0.7}]}}},
+     "targets": [
+       {"expr": "drift_confidence_mean or vector(0)", "legendFormat": "confidence", "refId": "A"}
+     ]},
+
+    {"id": 14, "title": "Tone Distribution",
+     "type": "piechart",
+     "gridPos": {"h": 8, "w": 9, "x": 6, "y": 24},
+     "targets": [
+       {"expr": "drift_pred_class > 0", "legendFormat": "{{tone}}", "refId": "A"}
+     ]},
+
+    {"id": 15, "title": "Feedback Ratio (👎 / total)",
+     "type": "gauge",
+     "gridPos": {"h": 8, "w": 9, "x": 15, "y": 24},
+     "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.3}, {"color": "red", "value": 0.7}]}}},
+     "targets": [
+       {"expr": "(feedback_votes_total{vote=\"down\"} or vector(0)) / ((feedback_votes_total{vote=\"up\"} or vector(0)) + (feedback_votes_total{vote=\"down\"} or vector(0)) + 1)", "legendFormat": "negative ratio", "refId": "A"}
+     ]},
+
+    {"id": 16, "title": "── ALERTS SUMMARY ──", "type": "text", "gridPos": {"h": 2, "w": 24, "x": 0, "y": 32},
+     "options": {"content": "## Active Alerts", "mode": "markdown"}},
+
+    {"id": 17, "title": "Firing Alerts",
+     "type": "alertlist",
+     "gridPos": {"h": 8, "w": 24, "x": 0, "y": 34},
+     "options": {"alertInstanceLabelFilter": "", "alertName": "", "dashboardAlerts": false, "groupBy": ["alertname", "severity"], "groupMode": "default", "maxItems": 20, "sortOrder": 1, "stateFilter": {"firing": true, "pending": true, "noData": false, "error": false, "inactive": false}}}
+  ]
+}

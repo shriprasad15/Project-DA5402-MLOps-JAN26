@@ -1,115 +1,283 @@
-# 17-service stub — every service boots a hello-world container in Wave 0
-# and gets replaced with a real image in Wave 1+.
+# PA Detector — 8-service compose stack
+# Run: docker compose up -d --wait --wait-timeout 180
+
 services:
-
-  nginx:
-    image: nginx:1.27-alpine
-    ports: ["80:80", "443:443"]
-    depends_on: [frontend, backend]
-    healthcheck: { test: ["CMD", "nginx", "-t"], interval: 10s }
-
-  frontend:
-    image: nginxinc/nginx-unprivileged:1.27-alpine
-    healthcheck: { test: ["CMD", "true"], interval: 10s }
-
-  backend:
-    image: python:3.11-slim
-    command: ["python", "-c", "import http.server,socketserver; socketserver.TCPServer(('',8000), http.server.BaseHTTPRequestHandler).serve_forever()"]
-    ports: ["8000:8000"]
-    env_file: [.env]
-    depends_on: [postgres, redis, model-server]
-    healthcheck: { test: ["CMD", "true"], interval: 10s }
-
-  model-server:
-    image: python:3.11-slim
-    command: ["python", "-c", "import http.server,socketserver; socketserver.TCPServer(('',8080), http.server.BaseHTTPRequestHandler).serve_forever()"]
-    healthcheck: { test: ["CMD", "true"], interval: 10s }
-
-  redis:
-    image: redis:7.4-alpine
-    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s }
 
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes: ["pg_data:/var/lib/postgresql/data"]
-    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"], interval: 10s }
+      POSTGRES_USER: ${POSTGRES_USER:-mlops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlops}
+      POSTGRES_DB: ${POSTGRES_DB:-mlops}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
 
-  mlflow-server:
-    image: ghcr.io/mlflow/mlflow:v2.17.0
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow/Dockerfile
     command: >
-      mlflow server --host 0.0.0.0 --port 5000
-      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/mlflow
-      --default-artifact-root /artifacts
-    volumes: ["mlflow_artifacts:/artifacts"]
-    depends_on: [postgres]
-    healthcheck: { test: ["CMD", "curl", "-f", "http://localhost:5000"], interval: 15s }
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER:-mlops}:${POSTGRES_PASSWORD:-mlops}@postgres/${POSTGRES_DB:-mlops}
+      --default-artifact-root mlflow-artifacts:/
+      --serve-artifacts
+      --artifacts-destination /mlruns
+      --dev
+    environment:
+      MLFLOW_SERVER_DISABLE_SECURITY_MIDDLEWARE: "true"
+      MLFLOW_SERVER_ALLOWED_HOSTS: "*"
+      MLFLOW_SERVER_CORS_ALLOWED_ORIGINS: "*"
+    volumes:
+      - mlflow_artifacts:/mlruns
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/')\""]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 20s
 
-  airflow-webserver:
-    image: apache/airflow:2.9.3-python3.11
-    command: webserver
-    env_file: [.env]
-    depends_on: [postgres]
-    healthcheck: { test: ["CMD", "true"], interval: 30s }
+  model-server:
+    build:
+      context: .
+      dockerfile: model-server/Dockerfile
+    command: >
+      mlflow models serve
+      -m models:/pa-detector@champion
+      -p 8080
+      --host 0.0.0.0
+      --env-manager local
+      --no-conda
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/ping')\""]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-mlops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlops}
+      POSTGRES_DB: ${POSTGRES_DB:-mlops}
+      MODEL_CLIENT: http
+      MODEL_SERVER_URL: http://model-server:8080
+      LOG_LEVEL: INFO
+      MAILTRAP_USER: ${MAILTRAP_USER:-}
+      MAILTRAP_USERNAME: ${MAILTRAP_USERNAME:-}
+      MAILTRAP_PASS: ${MAILTRAP_PASS:-}
+      MAILTRAP_PASSWORD: ${MAILTRAP_PASSWORD:-}
+      MAILTRAP_FROM: ${MAILTRAP_FROM:-pa-detector@example.com}
+      MAILTRAP_TO: ${MAILTRAP_TO:-admin@example.com}
+      MAILTRAP_TO_EMAIL: ${MAILTRAP_TO_EMAIL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: http://backend:8000
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true
+      "
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-mlops}:${POSTGRES_PASSWORD:-mlops}@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-supersecret}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   airflow-scheduler:
-    image: apache/airflow:2.9.3-python3.11
-    command: scheduler
-    env_file: [.env]
-    depends_on: [postgres]
-    healthcheck: { test: ["CMD", "true"], interval: 30s }
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    command: airflow scheduler
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-mlops}:${POSTGRES_PASSWORD:-mlops}@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-supersecret}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      PYTHONPATH: /opt/airflow
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - airflow_logs:/opt/airflow/logs
+      - ./src:/opt/airflow/src:ro
+      - ./contracts:/opt/airflow/contracts:ro
+      - ./data:/opt/airflow/data
+      - ./models:/opt/airflow/models
+      - /home/shriprasad/miniconda3/envs/mlops/lib/python3.11/site-packages:/conda-site-packages:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 30s
 
-  airflow-worker:
-    image: apache/airflow:2.9.3-python3.11
-    command: celery worker
-    env_file: [.env]
-    depends_on: [postgres]
-    healthcheck: { test: ["CMD", "true"], interval: 30s }
-
-  spark-master:
-    image: bitnami/spark:3.5.3
-    environment: { SPARK_MODE: master }
-    ports: ["7077:7077", "8081:8080"]
-    healthcheck: { test: ["CMD", "true"], interval: 15s }
-
-  spark-worker:
-    image: bitnami/spark:3.5.3
-    environment: { SPARK_MODE: worker, SPARK_MASTER_URL: "spark://spark-master:7077" }
-    depends_on: [spark-master]
-    healthcheck: { test: ["CMD", "true"], interval: 15s }
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    command: airflow webserver
+    ports:
+      - "8081:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-mlops}:${POSTGRES_PASSWORD:-mlops}@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-supersecret}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - airflow_logs:/opt/airflow/logs
+      - ./src:/opt/airflow/src:ro
+      - ./data:/opt/airflow/data
+      - ./models:/opt/airflow/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 90s
 
   prometheus:
-    image: prom/prometheus:v2.54.1
-    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"], interval: 15s }
+    image: prom/prometheus:v2.52.0
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
 
   alertmanager:
     image: prom/alertmanager:v0.27.0
-    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"], interval: 15s }
-
-  grafana:
-    image: grafana/grafana:11.2.2
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
-    volumes: ["grafana_data:/var/lib/grafana"]
-    healthcheck: { test: ["CMD-SHELL", "curl -fs http://localhost:3000/api/health"], interval: 15s }
-
-  node-exporter:
-    image: prom/node-exporter:v1.8.2
-    healthcheck: { test: ["CMD", "true"], interval: 30s }
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+      MAILTRAP_USER: ${MAILTRAP_USERNAME:-${MAILTRAP_USER:-}}
+      MAILTRAP_PASS: ${MAILTRAP_PASSWORD:-${MAILTRAP_PASS:-}}
+      MAILTRAP_TO: ${MAILTRAP_TO_EMAIL:-${MAILTRAP_TO:-admin@example.com}}
     volumes:
-      - "/:/rootfs:ro"
-      - "/var/run:/var/run:ro"
-      - "/sys:/sys:ro"
-      - "/var/lib/docker/:/var/lib/docker:ro"
-    healthcheck: { test: ["CMD", "true"], interval: 30s }
+      - ./monitoring/alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "cfg=$(cat /etc/alertmanager/config.yml) &&
+       cfg=$(echo \"$$cfg\" | sed \"s/\\$${MAILTRAP_USER}/$$MAILTRAP_USER/g\") &&
+       cfg=$(echo \"$$cfg\" | sed \"s/\\$${MAILTRAP_PASS}/$$MAILTRAP_PASS/g\") &&
+       cfg=$(echo \"$$cfg\" | sed \"s/\\$${MAILTRAP_TO}/$$MAILTRAP_TO/g\") &&
+       echo \"$$cfg\" > /tmp/alertmanager.yml &&
+       exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager"
+    ports:
+      - "9093:9093"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
 
 volumes:
   pg_data:
   mlflow_artifacts:
+  airflow_logs:
   grafana_data:
+  alertmanager_data:

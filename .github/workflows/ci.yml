@@ -1,19 +1,47 @@
-name: ci
+name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+
 jobs:
-  lint-and-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-      - run: pip install -r requirements-dev.txt
+      - run: uv pip install --system ruff==0.7.0 black==24.10.0 mypy==1.11.2
       - run: ruff check .
       - run: black --check .
-      - run: mypy backend || true   # relaxed in Wave 0; strict in Wave 4
-      - run: PYTHONPATH=. pytest -m unit -q
+      - run: mypy src/ backend/app/ --ignore-missing-imports
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv pip install --system ".[backend,dev]"
+      - run: PYTHONPATH=. pytest -m "not slow and not integration and not e2e" -q
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend
+        run: docker build -f backend/Dockerfile .
+      - name: Build frontend
+        run: docker build -f frontend/Dockerfile .
+      - name: Build airflow
+        run: docker build -f airflow/Dockerfile .

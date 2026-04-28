@@ -3,13 +3,19 @@ conda_env: conda.yaml
 entry_points:
   train:
     parameters:
-      data_hash: { type: str, default: "latest" }
-      epochs:    { type: int, default: 5 }
-      lr:        { type: float, default: 2.0e-5 }
-      batch_size:{ type: int, default: 64 }
-      tune:      { type: bool, default: false }
-    command: "python -m src.train --data-hash {data_hash} --epochs {epochs} --lr {lr} --batch-size {batch_size} --tune {tune}"
+      epochs:     { type: int,   default: 1 }
+      lr:         { type: float, default: 2.0e-5 }
+      batch_size: { type: int,   default: 16 }
+      device:     { type: str,   default: "cpu" }
+      data_path:  { type: str,   default: "data/processed/train.parquet" }
+      val_path:   { type: str,   default: "data/processed/val.parquet" }
+    command: >
+      python -m src.train
+      --epochs {epochs}
+      --lr {lr}
+      --batch-size {batch_size}
+      --device {device}
+      --data-path {data_path}
+      --val-path {val_path}
   evaluate:
     command: "python -m src.evaluate"
-  quantize:
-    command: "python -m src.quantize --mode dynamic_int8"

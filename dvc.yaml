@@ -4,7 +4,7 @@ stages:
     outs:
       - data/raw
   synth_pa:
-    cmd: python -m src.data.synthesize --out data/raw/synthetic_v1
+    cmd: python -m src.data.synthesize --out data/raw/synthetic_v1 --programmatic
     deps:
       - src/data/synthesize.py
       - prompts/synthesize
@@ -32,7 +32,7 @@ stages:
     outs:
       - data/reference
   train:
-    cmd: mlflow run . -e train -P data_hash=${dvc.hash}
+    cmd: mlflow run . -e train --env-manager=local
     deps:
       - data/processed
       - src/train.py
@@ -40,7 +40,7 @@ stages:
     outs:
       - models/
     metrics:
-      - metrics.json:
+      - eval.json:
           cache: false
   evaluate:
     cmd: python -m src.evaluate
@@ -50,9 +50,3 @@ stages:
     metrics:
       - eval.json:
           cache: false
-  quantize:
-    cmd: python -m src.quantize --mode dynamic_int8
-    deps:
-      - models/
-    outs:
-      - models/quantized

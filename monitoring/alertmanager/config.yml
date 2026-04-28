@@ -1,0 +1,87 @@
+# PA Detector AlertManager — DA5402
+# Thresholds: see monitoring/config.yaml
+# Credentials: from .env (MAILTRAP_USERNAME / MAILTRAP_PASSWORD / MAILTRAP_TO_EMAIL)
+
+global:
+  smtp_smarthost: "sandbox.smtp.mailtrap.io:587"
+  smtp_from: "pa-detector-alerts@monitoring.local"
+  smtp_auth_username: "${MAILTRAP_USER}"
+  smtp_auth_password: "${MAILTRAP_PASS}"
+  smtp_require_tls: true
+  resolve_timeout: 5m
+
+route:
+  receiver: "mailtrap-warning"
+  group_by: ["alertname", "severity", "category"]
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 1h
+  routes:
+    - match:
+        severity: "critical"
+      receiver: "mailtrap-critical"
+      group_wait: 5s
+      repeat_interval: 15m
+
+receivers:
+
+  - name: "mailtrap-warning"
+    email_configs:
+      - to: "${MAILTRAP_TO}"
+        send_resolved: true
+        headers:
+          Subject: '[PA-DETECTOR] {{ .GroupLabels.alertname }} FIRING'
+        html: |
+          <h2 style="font-family:sans-serif;">PA Detector Alert</h2>
+          <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;">
+            <tr><td><b>Alert</b></td><td>{{ .GroupLabels.alertname }}</td></tr>
+            <tr><td><b>Severity</b></td><td>{{ .GroupLabels.severity }}</td></tr>
+            <tr><td><b>Status</b></td><td>{{ .Status }}</td></tr>
+          </table>
+          <br>
+          {{ range .Alerts }}
+          <div style="border:1px solid #ddd;padding:12px;margin-bottom:12px;border-radius:4px;font-family:sans-serif;">
+            <p><b>Summary:</b> {{ .Annotations.summary }}</p>
+            <p><b>Description:</b> {{ .Annotations.description }}</p>
+            <p><small>Started: {{ .StartsAt }}</small></p>
+          </div>
+          {{ end }}
+          <p><a href="http://localhost:3000">Grafana</a> | <a href="http://localhost:9090/alerts">Prometheus</a></p>
+          <p><small>PA Detector Monitoring DA5402</small></p>
+    webhook_configs:
+      - url: "http://backend:8000/admin/alert"
+        send_resolved: true
+
+  - name: "mailtrap-critical"
+    email_configs:
+      - to: "${MAILTRAP_TO}"
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} Immediate Attention Required'
+        html: |
+          <h2 style="color:red;font-family:sans-serif;">CRITICAL: {{ .GroupLabels.alertname }}</h2>
+          <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;">
+            <tr><td><b>Severity</b></td><td style="color:red;font-weight:bold;">CRITICAL</td></tr>
+            <tr><td><b>Category</b></td><td>{{ .GroupLabels.category }}</td></tr>
+            <tr><td><b>Status</b></td><td>{{ .Status }}</td></tr>
+          </table>
+          <br>
+          {{ range .Alerts }}
+          <div style="border:2px solid red;padding:12px;margin-bottom:12px;background:#fff5f5;font-family:sans-serif;">
+            <p><b>Summary:</b> {{ .Annotations.summary }}</p>
+            <p><b>Description:</b> {{ .Annotations.description }}</p>
+            <p><small>Started: {{ .StartsAt }}</small></p>
+          </div>
+          {{ end }}
+          <p><a href="http://localhost:3000">Grafana</a> | <a href="http://localhost:9090/alerts">Prometheus</a></p>
+          <p><small>PA Detector Monitoring DA5402</small></p>
+    webhook_configs:
+      - url: "http://backend:8000/admin/alert"
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      alertname: "BackendDown"
+    target_match_re:
+      alertname: "^(High|Critical|Slow|Negative).*"
+    equal: ["category"]

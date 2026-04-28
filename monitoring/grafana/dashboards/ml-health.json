@@ -1,0 +1,61 @@
+{
+  "title": "ML Health",
+  "uid": "ml-health",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Model Inference Duration p95",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(model_inference_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95 inference",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Drift KS p-value (Input Length)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "drift_input_length_ks_pvalue",
+          "legendFormat": "KS p-value",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Prediction Confidence Mean",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "drift_confidence_mean",
+          "legendFormat": "confidence",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Tone Distribution",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "expr": "drift_pred_class",
+          "legendFormat": "{{tone}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

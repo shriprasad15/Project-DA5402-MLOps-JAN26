@@ -2,11 +2,69 @@
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+include = ["src*", "backend*", "contracts*", "frontend*"]
+
 [project]
 name = "pa-detector"
 version = "0.1.0"
 requires-python = ">=3.11,<3.12"
 description = "Passive-aggressive email detector — MLOps project"
+dependencies = [
+    "loguru==0.7.2",
+    "mlflow==3.11.1",
+    "numpy==2.1.3",
+    "pandas==2.2.3",
+    "prometheus-client==0.21.0",
+    "pyarrow==17.0.0",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2",
+    "python-dotenv==1.0.1",
+    "requests==2.32.3",
+    "scikit-learn==1.5.2",
+    "torch>=2.4.0",
+    "transformers==4.44.2",
+    "scipy>=1.13.0",
+]
+
+[project.optional-dependencies]
+backend = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "sqlalchemy==2.0.35",
+    "psycopg2-binary==2.9.9",
+    "alembic==1.13.3",
+    "httpx==0.28.1",
+]
+dev = [
+    "pytest==8.3.3",
+    "pytest-cov==5.0.0",
+    "pytest-asyncio==0.24.0",
+    "pytest-mock==3.14.0",
+    "ruff==0.7.0",
+    "black==24.10.0",
+    "mypy==1.11.2",
+    "pre-commit==3.8.0",
+    "schemathesis==3.36.0",
+    "locust==2.32.1",
+]
+frontend = [
+    "streamlit==1.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.3",
+    "pytest-cov==5.0.0",
+    "pytest-asyncio==0.24.0",
+    "pytest-mock==3.14.0",
+    "ruff==0.7.0",
+    "black==24.10.0",
+    "mypy==1.11.2",
+    "pre-commit==3.8.0",
+    "schemathesis==3.36.0",
+    "locust==2.32.1",
+]
 
 [tool.black]
 line-length = 100
@@ -18,7 +76,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "RUF"]
-ignore = ["E501"]  # black owns line length
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -29,7 +87,7 @@ exclude = ["backend/tests", "tests", "frontend"]
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra --strict-markers --strict-config"
-testpaths = ["tests", "backend/tests", "src"]
+testpaths = ["tests", "backend/tests", "src", "frontend/tests"]
 markers = [
     "unit: fast isolated tests",
     "integration: requires docker services",

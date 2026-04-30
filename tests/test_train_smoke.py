@@ -52,5 +52,5 @@ def test_train_one_epoch_smoke() -> None:
     loader = DataLoader(dataset, batch_size=2)
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
 
-    loss = train_one_epoch(model, loader, optimizer, "cpu", max_steps=2)
+    loss, _steps = train_one_epoch(model, loader, optimizer, "cpu", max_steps=2)
     assert loss > 0

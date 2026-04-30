@@ -9,9 +9,11 @@ ENV PYTHONPATH=/app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system \
     streamlit==1.38.0 \
-    requests==2.32.3
+    requests==2.32.3 \
+    pyyaml==6.0.2
 
 COPY frontend/ ./frontend/
+COPY monitoring/config.yaml ./monitoring/config.yaml
 
 EXPOSE 8501
 CMD ["streamlit", "run", "frontend/app.py", \

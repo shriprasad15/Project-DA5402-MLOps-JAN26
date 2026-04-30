@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     MAILTRAP_FROM: str = "pa-detector@example.com"
     MAILTRAP_TO: str = "admin@example.com"
     MAILTRAP_TO_EMAIL: str = ""
+    AIRFLOW_URL: str = "http://airflow-webserver:8080"
+    AIRFLOW_USER: str = "admin"
+    AIRFLOW_PASS: str = "admin"
+    AIRFLOW_DAG_ID: str = "pa_training_pipeline"
+    FEEDBACK_RETRAIN_THRESHOLD: float = 0.70  # negative ratio above this triggers retrain
+    FEEDBACK_RETRAIN_MIN_VOTES: int = 10       # min total votes before threshold is checked
 
     @property
     def mailtrap_user(self) -> str:

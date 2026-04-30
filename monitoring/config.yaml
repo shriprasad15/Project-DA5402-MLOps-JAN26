@@ -32,7 +32,17 @@ thresholds:
   oov_rate_warning: 0.20          # 20% out-of-vocab tokens
   inference_latency_critical: 2.0 # seconds — model server slow
   feedback_down_ratio: 0.70       # >70% thumbs-down = model quality issue
+  feedback_retrain_min_votes: 10  # minimum total votes before retrain can trigger
 
 grafana:
   dashboard_uid: "pa-detector-unified"
   refresh_interval: "10s"
+
+services:
+  backend_port: 8000
+  mlflow_port: 5000
+  airflow_port: 8080
+  grafana_port: 3000
+  prometheus_port: 9090
+  alertmanager_port: 9093
+  frontend_port: 8501

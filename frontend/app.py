@@ -4,23 +4,37 @@ from __future__ import annotations
 
 import os
 import uuid
+from pathlib import Path
 
 import requests
 import streamlit as st
+import yaml
 
 try:
     from frontend.helpers import build_highlight_html, tone_to_color
 except ModuleNotFoundError:
     from helpers import build_highlight_html, tone_to_color
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
-# Derive the host for sidebar links — works both locally and over SSH/remote
-_host = os.getenv("PUBLIC_HOST", "localhost")
-MLFLOW_URL = os.getenv("MLFLOW_URL", f"http://{_host}:5000")
-AIRFLOW_URL = os.getenv("AIRFLOW_URL", f"http://{_host}:8081")
-GRAFANA_URL = os.getenv("GRAFANA_URL", f"http://{_host}:3000")
-PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", f"http://{_host}:9090")
+def _load_service_config() -> dict:
+    """Load port config from monitoring/config.yaml; fall back to defaults."""
+    for candidate in [
+        Path(__file__).parents[1] / "monitoring" / "config.yaml",
+        Path("/opt/app/monitoring/config.yaml"),
+    ]:
+        if candidate.exists():
+            data = yaml.safe_load(candidate.read_text())
+            return data.get("services", {})
+    return {}
+
+
+_svc = _load_service_config()
+
+BACKEND_URL    = os.getenv("BACKEND_URL",    f"http://localhost:{_svc.get('backend_port', 8000)}")
+MLFLOW_URL     = os.getenv("MLFLOW_URL",     f"http://localhost:{_svc.get('mlflow_port', 5000)}")
+AIRFLOW_URL    = os.getenv("AIRFLOW_URL",    f"http://localhost:{_svc.get('airflow_port', 8080)}")
+GRAFANA_URL    = os.getenv("GRAFANA_URL",    f"http://localhost:{_svc.get('grafana_port', 3000)}")
+PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", f"http://localhost:{_svc.get('prometheus_port', 9090)}")
 
 st.set_page_config(page_title="PA Email Detector", layout="wide")
 

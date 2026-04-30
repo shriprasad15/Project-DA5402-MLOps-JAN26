@@ -2,7 +2,7 @@
   "title": "PA Detector — Unified Monitoring",
   "uid": "pa-detector-unified",
   "schemaVersion": 36,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
   "time": {"from": "now-1h", "to": "now"},
   "tags": ["pa-detector", "mlops"],
@@ -58,7 +58,7 @@
      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 10},
      "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "green", "mode": "fixed"}}},
      "targets": [
-       {"expr": "feedback_votes_total{vote=\"up\"} or vector(0)", "legendFormat": "thumbs up", "refId": "A"}
+       {"expr": "max(feedback_votes_total{vote=\"up\"}) or vector(0)", "legendFormat": "thumbs up", "refId": "A"}
      ]},
 
     {"id": 8, "title": "Feedback 👎 Votes",
@@ -66,7 +66,7 @@
      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 10},
      "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "red", "mode": "fixed"}}},
      "targets": [
-       {"expr": "feedback_votes_total{vote=\"down\"} or vector(0)", "legendFormat": "thumbs down", "refId": "A"}
+       {"expr": "max(feedback_votes_total{vote=\"down\"}) or vector(0)", "legendFormat": "thumbs down", "refId": "A"}
      ]},
 
     {"id": 9, "title": "── ML HEALTH ──", "type": "text", "gridPos": {"h": 2, "w": 24, "x": 0, "y": 14},
@@ -102,7 +102,7 @@
      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 24},
      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "green", "value": 0.7}]}}},
      "targets": [
-       {"expr": "drift_confidence_mean or vector(0)", "legendFormat": "confidence", "refId": "A"}
+       {"expr": "max(drift_confidence_mean) or vector(0)", "legendFormat": "confidence", "refId": "A"}
      ]},
 
     {"id": 14, "title": "Tone Distribution",
@@ -117,7 +117,7 @@
      "gridPos": {"h": 8, "w": 9, "x": 15, "y": 24},
      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.3}, {"color": "red", "value": 0.7}]}}},
      "targets": [
-       {"expr": "(feedback_votes_total{vote=\"down\"} or vector(0)) / ((feedback_votes_total{vote=\"up\"} or vector(0)) + (feedback_votes_total{vote=\"down\"} or vector(0)) + 1)", "legendFormat": "negative ratio", "refId": "A"}
+       {"expr": "max(feedback_votes_total{vote=\"down\"} or vector(0)) / (max(feedback_votes_total{vote=\"up\"} or vector(0)) + max(feedback_votes_total{vote=\"down\"} or vector(0)) + 1)", "legendFormat": "negative ratio", "refId": "A"}
      ]},
 
     {"id": 16, "title": "── ALERTS SUMMARY ──", "type": "text", "gridPos": {"h": 2, "w": 24, "x": 0, "y": 32},

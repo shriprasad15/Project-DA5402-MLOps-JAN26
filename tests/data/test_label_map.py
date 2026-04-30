@@ -9,7 +9,8 @@ def test_sarcasm_headlines_maps_to_unified_schema():
     assert list(out.columns) == UNIFIED_COLS
     row = out.iloc[0]
     assert row["sarcasm"] == 1.0
-    assert row["passive_aggression"] == 0.0
+    # sarcasm > 0.5 maps to passive_aggression=0.75 by design in label_map.py
+    assert row["passive_aggression"] == 0.75
     assert row["tone"] in {t.value for t in Tone}
     assert bool(row["weak_label"]) is True
 

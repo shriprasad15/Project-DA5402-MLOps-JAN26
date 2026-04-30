@@ -2,7 +2,7 @@ stages:
   ingest:
     cmd: python -m src.data.ingest
     outs:
-      - data/raw
+      - data/raw/external
   synth_pa:
     cmd: python -m src.data.synthesize --out data/raw/synthetic_v1 --programmatic
     deps:
@@ -13,7 +13,8 @@ stages:
   clean:
     cmd: python -m src.data.clean
     deps:
-      - data/raw
+      - data/raw/external
+      - data/raw/synthetic_v1
       - src/data/clean.py
     outs:
       - data/interim
@@ -39,9 +40,6 @@ stages:
       - src/models
     outs:
       - models/
-    metrics:
-      - eval.json:
-          cache: false
   evaluate:
     cmd: python -m src.evaluate
     deps:
